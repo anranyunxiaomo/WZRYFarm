@@ -7,7 +7,10 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png?v=2">
+    <link rel="apple-touch-icon" sizes="152x152" href="icon.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon.png?v=2">
+    <link rel="apple-touch-icon" sizes="167x167" href="icon.png?v=2">
     <style>
         :root {
             --ios-bg: #F2F2F7;
@@ -1251,20 +1254,30 @@
             return `${target.getMonth()+1}/${target.getDate()} ${timeStr}`;
         }
 
+        // --- 提醒工具函数 ---
         function alertUser(title, body) {
             playNotifySound();
-            if (Notification.permission === 'granted') new Notification(title, { body });
+            haptic([100, 50, 100]); // 震动反馈
+            if (Notification.permission === 'granted') {
+                try {
+                    new Notification(title, { body });
+                } catch(e) {}
+            }
             const banner = document.getElementById('ios-alert');
             document.getElementById('alert-title').innerText = title;
-            document.getElementById('alert-body').innerText = body;
-            banner.style.display = 'block';
-            setTimeout(() => { banner.style.display = 'none'; }, 8000);
+            document.getElementById('alert-body').innerText  = body;
+            
+            banner.classList.remove('show');
+            void banner.offsetWidth; // force reflow
+            banner.classList.add('show');
+            clearTimeout(banner._timer);
+            banner._timer = setTimeout(() => banner.classList.remove('show'), 8000);
         }
 
+        // iOS 原生对话框核心库
         function playNotifySound() {
             try {
                 const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                // 层叠两个正弦波，模拟柔和钟球音
                 [880, 1108].forEach((freq, i) => {
                     const osc  = ctx.createOscillator();
                     const gain = ctx.createGain();
@@ -1272,7 +1285,6 @@
                     gain.connect(ctx.destination);
                     osc.type = 'sine';
                     osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
-                    // 快速起音 + 长尾衰减，耕耕耱山容，不刺耳
                     gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
                     gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.01);
                     gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.12 + 1.0);
@@ -1280,7 +1292,7 @@
                     osc.stop(ctx.currentTime + i * 0.12 + 1.1);
                     osc.onended = () => ctx.close();
                 });
-            } catch(e) { /* 浏览器不支持时静默异常 */ }
+            } catch(e) {}
         }
 
         async function stopSlot(type) {
@@ -1306,22 +1318,6 @@
             switchView(type);
         }
 
-        // --- 弹窗工具函数 ---
-        function alertUser(title, body) {
-            playNotifySound();
-            if (Notification.permission === 'granted') new Notification(title, { body });
-            const banner = document.getElementById('ios-alert');
-            document.getElementById('alert-title').innerText = title;
-            document.getElementById('alert-body').innerText  = body;
-            // 如果已在显示，先重置动画
-            banner.classList.remove('show');
-            void banner.offsetWidth; // force reflow
-            banner.classList.add('show');
-            clearTimeout(banner._timer);
-            banner._timer = setTimeout(() => banner.classList.remove('show'), 6000);
-        }
-
-        // iOS 原生对话框核心库
         let _modalResolve = null;
 
         function _openModal(title, msg, hasInput, defaultVal, buttons) {

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'farm-helper-v7.3';
+const CACHE_NAME = 'farm-helper-v7.4';
 const ASSETS = [
     './',
     './index.html',
     './manifest.json',
-    './icon.png'
+    './icon.png?v=2'
 ];
 
 self.addEventListener('install', (e) => {
