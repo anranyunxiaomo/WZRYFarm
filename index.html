@@ -599,6 +599,12 @@
             border-radius: 12px;
             font-size: 17px;
             font-weight: 600;
+            transition: transform 0.1s;
+            cursor: pointer;
+        }
+        .activate-btn:active {
+            transform: scale(0.96);
+            opacity: 0.9;
         }
     </style>
 </head>
@@ -609,7 +615,10 @@
         <div class="lock-card">
             <div class="lock-icon">🔒</div>
             <div class="lock-title">系统已锁定</div>
-            <div class="lock-msg">本应用仅供授权设备使用。请将下方识别码发送给管理员换取激活码。</div>
+            <div class="lock-msg">
+                本应用仅供授权设备使用。请将识别码发送给管理员。<br>
+                <span style="color:var(--ios-orange); font-weight:600;">注：如已添加到主屏幕，请在主屏幕 App 内激活。</span>
+            </div>
             
             <div class="device-box">
                 <span class="device-label">设备识别码 (Device ID)</span>
@@ -617,8 +626,10 @@
                 <div class="copy-hint" onclick="copyId()">点击复制 ID</div>
             </div>
 
-            <input type="text" class="activation-input" id="activation-code" placeholder="输入激活码" autocorrect="off" autocapitalize="on">
-            <button class="activate-btn" onclick="doActivate()">立即激活应用</button>
+            <input type="text" class="activation-input" id="activation-code" 
+                   placeholder="输入激活码" autocorrect="off" autocapitalize="on"
+                   onkeydown="if(event.key==='Enter') { haptic(15); doActivate(); }">
+            <button class="activate-btn" onclick="haptic(15); doActivate()">立即激活应用</button>
         </div>
         <p style="margin-top: 30px; font-size: 12px; color: #8E8E93;">农场助手 · 安全分发系统</p>
     </div>
@@ -689,16 +700,19 @@
     <script>
         const STORAGE_KEY = 'ios_farm_v7'; 
         const AUTH_KEY    = 'ios_farm_auth_v7';
-        const APP_SECRET  = "XWNC_2026_PRO"; // 管理员密钥，请确保护密
+        const APP_SECRET  = "anrnayunxiaomo_XWNC_2026_PRO"; 
 
         function getDeviceId() {
+            // 锁定屏幕参数，取最大最小值以兼容横竖屏和 PWA 模式差异
+            const w = Math.max(screen.width, screen.height);
+            const h = Math.min(screen.width, screen.height);
             const info = [
-                navigator.userAgent,
+                w, h,
+                navigator.hardwareConcurrency || 8,
                 navigator.language,
-                screen.width,
-                screen.height,
-                screen.colorDepth
+                navigator.platform
             ].join('|');
+            
             let hash = 0;
             for (let i = 0; i < info.length; i++) {
                 hash = ((hash << 5) - hash) + info.charCodeAt(i);
@@ -733,19 +747,26 @@
         }
 
         async function doActivate() {
-            const did = getDeviceId();
-            const code = document.getElementById('activation-code').value;
-            if (verifyCode(did, code)) {
-                localStorage.setItem(AUTH_KEY, code.toUpperCase().trim());
-                const lock = document.getElementById('lock-screen');
-                lock.style.opacity = '0';
-                lock.style.transition = 'opacity 0.4s ease';
-                setTimeout(() => {
-                    lock.style.display = 'none';
-                    initAppCore(); // 激活后立即完整启动应用核心，无需重启
-                }, 400);
-            } else {
-                iosAlert('激活失败', '无效的激活码，请检查后重试。');
+            try {
+                const did = getDeviceId();
+                const codeNode = document.getElementById('activation-code');
+                const code = codeNode.value.trim().toUpperCase();
+                
+                if (verifyCode(did, code)) {
+                    localStorage.setItem(AUTH_KEY, code);
+                    const lock = document.getElementById('lock-screen');
+                    lock.style.opacity = '0';
+                    lock.style.transition = 'opacity 0.4s ease';
+                    setTimeout(() => {
+                        lock.style.display = 'none';
+                        initAppCore(); 
+                    }, 400);
+                } else {
+                    iosAlert('激活失败', '无效的激活码，请检查后重试。');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('激活异常: ' + err.message);
             }
         }
 
