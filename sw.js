@@ -1,4 +1,4 @@
-const CACHE_NAME = 'farm-helper-v7.1';
+const CACHE_NAME = 'farm-helper-v7.3';
 const ASSETS = [
     './',
     './index.html',
