@@ -1,0 +1,17 @@
+{
+  "name": "小王农场助手",
+  "short_name": "王农场",
+  "description": "王者荣耀农场极限收获工具 - PWA 增强版",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#F2F2F7",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

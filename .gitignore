@@ -1,0 +1,8 @@
+# 屏蔽敏感管理工具，防止激活算法泄露
+generator.html
+
+# 屏幕操作系统产生的文件
+.DS_Store
+node_modules/
+dist/
+.env

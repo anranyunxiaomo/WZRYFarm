@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>小王农场助手 V7</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" href="icon.png">
+    <style>
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-orange: #FF9500;
+            --ios-purple: #AF52DE;
+            --ios-gold: #D4AF37;
+            --ios-label: #000000;
+            --ios-secondary-label: #8E8E93;
+            --ios-separator: #C6C6C8;
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, "PingFang SC", "Helvetica Neue", sans-serif;
+            background-color: var(--ios-bg);
+            color: var(--ios-label);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            padding-bottom: calc(75px + var(--safe-bottom));
+        }
+
+        /* 顶部导航标题 */
+        .nav-bar {
+            padding: calc(40px + var(--safe-top)) 20px 10px;
+            background: rgba(242, 242, 247, 0.8);
+            backdrop-filter: saturate(180%) blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-bar h1 {
+            margin: 0;
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        #edit-name-btn {
+            font-size: 15px;
+            color: var(--ios-blue);
+            font-weight: 400;
+        }
+
+        .nav-bar #current-time {
+            font-size: 15px;
+            color: var(--ios-secondary-label);
+            font-weight: 400;
+            margin-top: 2px;
+        }
+
+        /* 底部导航栏 Tab Bar */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: calc(50px + var(--safe-bottom));
+            background: rgba(248, 248, 248, 0.94);
+            backdrop-filter: blur(20px);
+            border-top: 0.5px solid var(--ios-separator);
+            display: flex;
+            justify-content: space-around;
+            padding-bottom: var(--safe-bottom);
+            z-index: 1000;
+        }
+
+        .tab-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 500;
+            color: var(--ios-secondary-label);
+            transition: color 0.2s;
+        }
+
+        .tab-item.active {
+            color: var(--ios-blue);
+        }
+
+        .tab-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+
+        /* 内容视图切换 */
+        .view-section {
+            display: none;
+            width: 100%;
+            padding: 10px 20px;
+        }
+        .view-section.active {
+            display: block;
+        }
+
+        /* 可滚动的分段选择器 (Scrollable Tabs) */
+        .tabs-container {
+            margin: 15px 0 10px;
+            padding: 0 0px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        .tabs-container::-webkit-scrollbar { display: none; }
+
+        .segmented-control {
+            background: rgba(118, 118, 128, 0.12);
+            border-radius: 9px;
+            display: inline-flex;
+            padding: 2px;
+            min-width: 100%;
+            position: relative;
+        }
+
+        .segmented-control .seg-item {
+            padding: 7px 15px;
+            font-size: 13px;
+            font-weight: 500;
+            z-index: 2;
+            cursor: pointer;
+            transition: color 0.2s;
+            color: var(--ios-label);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .segmented-control .seg-item.active {
+            color: var(--ios-label);
+        }
+
+        .segmented-control .add-btn {
+            color: var(--ios-blue);
+            font-size: 18px;
+            font-weight: bold;
+            padding: 7px 15px;
+        }
+
+        .segmented-control .selection-slider {
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            height: calc(100% - 4px);
+            background: #FFFFFF;
+            border-radius: 7px;
+            box-shadow: 0 3px 8px rgba(0,0,0,0.12), 0 3px 1px rgba(0,0,0,0.04);
+            transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1), width 0.3s;
+            z-index: 1;
+        }
+
+        /* 收获大卡片 - 默认蓝色，按作物时长切换 */
+        .harvest-hero {
+            background: linear-gradient(135deg, #007AFF, #5856D6);
+            border-radius: 20px;
+            padding: 28px 24px;
+            color: white;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            transition: background 0.5s ease, box-shadow 0.5s ease, transform 0.5s ease;
+        }
+        /* 按作物时长的主题色 */
+        .harvest-hero.theme-1h  { background: linear-gradient(135deg, #34C759, #30B855); }
+        .harvest-hero.theme-8h  { background: linear-gradient(135deg, #007AFF, #5856D6); }
+        .harvest-hero.theme-16h { background: linear-gradient(135deg, #FF9500, #FF6B00); }
+        .harvest-hero.theme-32h { background: linear-gradient(135deg, #AF52DE, #6E40C9); }
+        .harvest-hero.ready {
+            animation: hero-breathe 2.5s infinite ease-in-out;
+        }
+        @keyframes hero-breathe {
+            0%   { transform: scale(1);   box-shadow: 0 0 15px rgba(0,0,0,0.18); }
+            50%  { transform: scale(1.02); box-shadow: 0 0 35px rgba(0,0,0,0.30); }
+            100% { transform: scale(1);   box-shadow: 0 0 15px rgba(0,0,0,0.18); }
+        }
+        /* 作物时间选择展开区 */
+        .crop-time-panel {
+            display: none;
+            background: #F2F2F7;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin: 8px 0 6px;
+        }
+        .crop-time-panel.open { display: block; }
+        .crop-time-panel label {
+            font-size: 13px;
+            color: var(--ios-secondary-label);
+            display: block;
+            margin-bottom: 8px;
+        }
+        .crop-time-panel input[type=datetime-local] {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--ios-separator);
+            font-size: 15px;
+            background: white;
+            color: var(--ios-label);
+            margin-bottom: 10px;
+        }
+        .crop-time-panel .start-btn {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            background: var(--ios-blue);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .harvest-hero::before {
+            content: '';
+            position: absolute;
+            top: -40px; right: -40px;
+            width: 160px; height: 160px;
+            background: rgba(255,255,255,0.08);
+            border-radius: 50%;
+        }
+        .harvest-hero .hero-label {
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0.8;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        .harvest-hero .hero-time {
+            font-size: 34px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+        .harvest-hero .hero-sub {
+            font-size: 14px;
+            opacity: 0.75;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .hero-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* 步骤卡片 */
+        .steps-card {
+            background: var(--ios-card);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 16px;
+        }
+        .step-row {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 0.5px solid var(--ios-separator);
+            gap: 14px;
+        }
+        .step-row:last-child { border-bottom: none; }
+        .step-icon {
+            width: 38px; height: 38px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+        .step-icon.green  { background: #E8F8EE; }
+        .step-icon.blue   { background: #E5F1FF; }
+        .step-icon.orange { background: #FFF4E5; }
+        .step-icon.purple { background: #F0EEFF; }
+        .step-icon.gray   { background: #F2F2F7; }
+
+        .step-body { flex: 1; min-width: 0; }
+        .step-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ios-label);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .step-title.done-text { color: var(--ios-secondary-label); text-decoration: line-through; }
+        .step-subtitle { font-size: 13px; color: var(--ios-secondary-label); margin-top: 2px; }
+        .step-time {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ios-blue);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .step-time.done { color: #34C759; }
+        .step-time.alert { color: #FF9500; }
+
+        /* 输入表单样式 */
+        .card-header {
+            padding: 15px 0 10px;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--ios-secondary-label);
+            text-transform: uppercase;
+        }
+
+        .ios-input-group {
+            background: var(--ios-card);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .input-item {
+            min-height: 48px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 0.5px solid var(--ios-separator);
+            background: var(--ios-card);
+        }
+        .input-item:last-child { border-bottom: none; }
+        .input-label { 
+            flex: 1;
+            font-size: 17px; 
+            color: var(--ios-label);
+        }
+        .input-value-wrap {
+            display: flex;
+            align-items: center;
+            color: var(--ios-secondary-label);
+            font-size: 17px;
+        }
+        .input-field {
+            border: none; 
+            background: transparent;
+            font-size: 17px; 
+            font-family: inherit; 
+            color: var(--ios-secondary-label);
+            text-align: right; 
+            outline: none;
+            padding: 0 4px 0 0;
+            margin: 0;
+            display: block;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+        select.input-field {
+            text-align-last: right;
+            padding-right: 4px;
+        }
+        .input-arrow {
+            color: #C4C4C6;
+            font-size: 16px;
+            margin-left: 4px;
+            font-weight: 300;
+        }
+
+        .ios-button {
+            display: block; width: 100%; margin: 20px 0; padding: 14px;
+            background: var(--ios-blue); color: white; border: none; border-radius: 12px;
+            font-size: 17px; font-weight: 600; cursor: pointer; text-align: center;
+        }
+        .ios-button:active { opacity: 0.7; }
+        .ios-button.danger { color: #FF3B30; background: transparent; font-weight: 400; }
+
+        /* 全局通知悬浮窗 */
+        #ios-alert {
+            position: fixed; top: calc(var(--safe-top) + 10px); left: 10px; right: 10px;
+            background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+            border-radius: 18px; padding: 16px; display: none; z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15); border: 0.5px solid rgba(0,0,0,0.1);
+        }
+
+        /* 作物选择卡片样式 */
+        .crop-item {
+            display: flex;
+            align-items: center;
+            padding: 14px 16px;
+            border-bottom: 0.5px solid var(--ios-separator);
+            gap: 14px;
+            cursor: pointer;
+        }
+        .crop-item:last-child { border-bottom: none; }
+        .crop-item:active { background: #F5F5F5; }
+        .crop-icon {
+            width: 40px; height: 40px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            flex-shrink: 0;
+        }
+        .crop-body { flex: 1; }
+        .crop-title { font-size: 17px; font-weight: 500; }
+        .crop-subtitle { font-size: 13px; color: var(--ios-secondary-label); margin-top: 2px; }
+        /* iOS 原生弹窗样式 */
+        .ios-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 9000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .ios-modal-overlay.visible { opacity: 1; }
+
+        .ios-modal-card {
+            background: rgba(242, 242, 247, 0.95);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 340px;
+            overflow: hidden;
+            transform: scale(0.85);
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+        }
+        .ios-modal-overlay.visible .ios-modal-card { transform: scale(1); }
+
+        .ios-modal-header {
+            padding: 20px 20px 12px;
+            text-align: center;
+        }
+        .ios-modal-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 6px;
+        }
+        .ios-modal-msg {
+            font-size: 13px;
+            color: var(--ios-secondary-label);
+            line-height: 1.4;
+        }
+        .ios-modal-input {
+            margin: 4px 16px 16px;
+            background: white;
+            border: none;
+            border-radius: 10px;
+            padding: 11px 14px;
+            font-size: 17px;
+            font-family: inherit;
+            color: var(--ios-label);
+            width: calc(100% - 32px);
+            outline: none;
+            box-shadow: 0 0 0 0 var(--ios-blue);
+            transition: box-shadow 0.2s;
+        }
+        .ios-modal-input:focus {
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.3);
+        }
+        .ios-modal-actions {
+            border-top: 0.5px solid var(--ios-separator);
+            display: flex;
+        }
+        .ios-modal-btn {
+            flex: 1;
+            padding: 14px 10px;
+            font-size: 17px;
+            font-family: inherit;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-right: 0.5px solid var(--ios-separator);
+        }
+        .ios-modal-btn:last-child { border-right: none; }
+        .ios-modal-btn:active { background: rgba(0,0,0,0.06); }
+        .ios-modal-btn.primary { font-weight: 600; color: var(--ios-blue); }
+        .ios-modal-btn.destructive { font-weight: 400; color: #FF3B30; }
+
+        /* 顶部通知 Banner 优化 */
+        #ios-alert {
+            position: fixed;
+            top: calc(var(--safe-top) + 12px);
+            left: 12px;
+            right: 12px;
+            background: rgba(50, 50, 55, 0.92);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border-radius: 16px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 8000;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+            transform: translateY(calc(-100% - 30px));
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        #ios-alert.show { transform: translateY(0); }
+        #ios-alert .alert-icon {
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+        #ios-alert .alert-text { flex: 1; }
+        #ios-alert .alert-title-text {
+            font-weight: 600;
+            font-size: 14px;
+            color: #FFFFFF;
+        }
+        #ios-alert .alert-body-text {
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            margin-top: 2px;
+        }
+        /* 激活系统锁屏界面 */
+        #lock-screen {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(40px);
+            -webkit-backdrop-filter: blur(40px);
+            z-index: 99999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .lock-card {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 24px;
+            padding: 30px;
+            width: 100%;
+            max-width: 340px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.1);
+            border: 0.5px solid rgba(255,255,255,0.5);
+        }
+        .lock-icon { font-size: 60px; margin-bottom: 20px; }
+        .lock-title { font-size: 24px; font-weight: 700; margin-bottom: 10px; }
+        .lock-msg { font-size: 14px; color: var(--ios-secondary-label); margin-bottom: 24px; line-height: 1.5; }
+        .device-box {
+            background: #F2F2F7;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 24px;
+            font-family: monospace;
+            font-size: 18px;
+            font-weight: 600;
+            position: relative;
+        }
+        .device-label { font-size: 11px; color: var(--ios-secondary-label); margin-bottom: 4px; display: block; }
+        .copy-hint { font-size: 10px; color: var(--ios-blue); margin-top: 5px; cursor: pointer; }
+        .activation-input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: 1px solid var(--ios-separator);
+            font-size: 17px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-family: monospace;
+            text-transform: uppercase;
+        }
+        .activate-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--ios-blue);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 锁定拦截界面 -->
+    <div id="lock-screen">
+        <div class="lock-card">
+            <div class="lock-icon">🔒</div>
+            <div class="lock-title">系统已锁定</div>
+            <div class="lock-msg">本应用仅供授权设备使用。请将下方识别码发送给管理员换取激活码。</div>
+            
+            <div class="device-box">
+                <span class="device-label">设备识别码 (Device ID)</span>
+                <span id="display-device-id">--------</span>
+                <div class="copy-hint" onclick="copyId()">点击复制 ID</div>
+            </div>
+
+            <input type="text" class="activation-input" id="activation-code" placeholder="输入激活码" autocorrect="off" autocapitalize="on">
+            <button class="activate-btn" onclick="doActivate()">立即激活应用</button>
+        </div>
+        <p style="margin-top: 30px; font-size: 12px; color: #8E8E93;">王者荣耀农场助手 V7 · 安全分发系统</p>
+    </div>
+
+    <!-- 顶部通知 Banner -->
+    <div id="ios-alert">
+        <div class="alert-icon">🔔</div>
+        <div class="alert-text">
+            <div class="alert-title-text" id="alert-title">提醒</div>
+            <div class="alert-body-text" id="alert-body">内容</div>
+        </div>
+    </div>
+
+    <!-- iOS 原生对话框 -->
+    <div class="ios-modal-overlay" id="ios-modal" onclick="_modalOverlayClick(event)">
+        <div class="ios-modal-card" id="ios-modal-card">
+            <div class="ios-modal-header">
+                <div class="ios-modal-title" id="modal-title"></div>
+                <div class="ios-modal-msg" id="modal-msg"></div>
+            </div>
+            <input class="ios-modal-input" id="modal-input" type="text" style="display:none" placeholder="" autocorrect="off" autocapitalize="off">
+            <div class="ios-modal-actions" id="modal-actions"></div>
+        </div>
+    </div>
+
+    <!-- 顶栏 -->
+    <div class="nav-bar">
+        <h1 id="page-nav-wrap">
+            <span id="page-title">小王农场助手</span>
+            <span id="edit-name-btn" onclick="renameCurrent()">重命名</span>
+        </h1>
+        <div id="current-time">00:00:00</div>
+    </div>
+
+    <!-- 分屏内容：我的农场 -->
+    <div id="view-farm" class="view-section active">
+        <div class="tabs-container">
+            <div class="segmented-control" id="farm-tabs">
+                <div class="selection-slider" id="farm-slider"></div>
+            </div>
+        </div>
+        <div id="farm-content"></div>
+    </div>
+
+    <!-- 分屏内容：串门监控 (原外部监控) -->
+    <div id="view-calc" class="view-section">
+        <div class="tabs-container">
+            <div class="segmented-control" id="calc-tabs">
+                <div class="selection-slider" id="calc-slider"></div>
+            </div>
+        </div>
+        <div id="calc-content"></div>
+    </div>
+
+    <!-- 底部导航 -->
+    <div class="tab-bar">
+        <div class="tab-item active" onclick="switchView('farm')">
+            <div class="tab-icon">🌾</div>
+            <span>我的农场</span>
+        </div>
+        <div class="tab-item" onclick="switchView('calc')">
+            <div class="tab-icon">🖥️</div>
+            <span>串门监控</span>
+        </div>
+    </div>
+
+
+    <script>
+        const STORAGE_KEY = 'ios_farm_v7'; 
+        const AUTH_KEY    = 'ios_farm_auth_v7';
+        const APP_SECRET  = "XWNC_2026_PRO"; // 管理员密钥，请确保护密
+
+        function getDeviceId() {
+            const info = [
+                navigator.userAgent,
+                navigator.language,
+                screen.width,
+                screen.height,
+                screen.colorDepth
+            ].join('|');
+            let hash = 0;
+            for (let i = 0; i < info.length; i++) {
+                hash = ((hash << 5) - hash) + info.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(hash).toString(16).toUpperCase().padStart(8, '0');
+        }
+
+        function verifyCode(did, code) {
+            if (!code) return false;
+            // 简单的校验算法：ID + Secret 的混合哈希
+            let str = did + APP_SECRET;
+            let hash = 5381;
+            for (let i = 0; i < str.length; i++) {
+                hash = (hash * 33) ^ str.charCodeAt(i);
+            }
+            const expected = (Math.abs(hash) >>> 0).toString(16).toUpperCase();
+            return code.toUpperCase().trim() === expected;
+        }
+
+        function checkAuth() {
+            const did = getDeviceId();
+            const savedCode = localStorage.getItem(AUTH_KEY);
+            if (verifyCode(did, savedCode)) {
+                document.getElementById('lock-screen').style.display = 'none';
+                return true;
+            } else {
+                document.getElementById('lock-screen').style.display = 'flex';
+                document.getElementById('display-device-id').innerText = did;
+                return false;
+            }
+        }
+
+        async function doActivate() {
+            const did = getDeviceId();
+            const code = document.getElementById('activation-code').value;
+            if (verifyCode(did, code)) {
+                localStorage.setItem(AUTH_KEY, code.toUpperCase().trim());
+                iosAlert('激活成功', '欢迎使用小王农场助手！').then(() => {
+                    location.reload();
+                });
+            } else {
+                iosAlert('激活失败', '无效的激活码，请检查后重试。');
+            }
+        }
+
+        function copyId() {
+            const id = document.getElementById('display-device-id').innerText;
+            navigator.clipboard.writeText(id).then(() => {
+                const hint = document.querySelector('.copy-hint');
+                hint.innerText = '✅ 已复制到剪贴板';
+                setTimeout(() => hint.innerText = '点击复制 ID', 2000);
+            });
+        }
+        
+        // 具体作物数据
+        const CROP_DATA = {
+            1: [
+                { name: '土豆', icon: '🥔' },
+                { name: '向日葵', icon: '🌻' },
+                { name: '黄瓜', icon: '🥒' },
+                { name: '白萝卜', icon: '🥕' }
+            ],
+            8: [
+                { name: '玉米', icon: '🌽' },
+                { name: '青椒', icon: '🫑' },
+                { name: '茄子', icon: '🍆' },
+                { name: '葡萄', icon: '🍇' }
+            ],
+            16: [
+                { name: '草莓', icon: '🍓' },
+                { name: '大蒜', icon: '🧄' },
+                { name: '香蕉', icon: '🍌' },
+                { name: '南瓜', icon: '🎃' },
+                { name: '柚子', icon: '🍊' },
+                { name: '生菜', icon: '🥬' },
+                { name: '西瓜', icon: '🍉' }
+            ],
+            32: [
+                { name: '蓝莓', icon: '🫐' },
+                { name: '卷心菜', icon: '🥬' },
+                { name: '辣椒', icon: '🌶️' }
+            ]
+        };
+
+        let plots = []; 
+        let calcPlots = [];
+        let currentIdx = 0;
+        let currentCalcIdx = 0;
+        let currentView = 'farm';
+        let loop = null;
+
+        function init() {
+            if (!checkAuth()) return; // 鉴权未通过则不初始化
+            load();
+            if (plots.length === 0) plots.push({ name: '1号土地', hours: 0, crop: null, status: 'idle', points: [] });
+            if (calcPlots.length === 0) calcPlots.push({ name: '好友1', hours: 0, crop: null, status: 'idle', points: [] });
+            
+            setInterval(() => { 
+                document.getElementById('current-time').innerText = new Date().toLocaleTimeString(); 
+            }, 1000);
+
+            renderAll();
+            switchView('farm'); // 强制同步初始标题
+            startLoop();
+
+            if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+            if ("Notification" in window) Notification.requestPermission();
+        }
+
+        function load() {
+            const data = localStorage.getItem(STORAGE_KEY);
+            if (data) {
+                const parsed = JSON.parse(data);
+                plots = parsed.plots || [];
+                calcPlots = parsed.calcPlots || [];
+            }
+        }
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify({ plots, calcPlots }));
+        }
+
+        function renderAll() {
+            renderTabs('farm');
+            renderTabs('calc');
+            renderContent('farm');
+            renderContent('calc');
+        }
+
+        // --- 视图切换 ---
+        function switchView(view) {
+            currentView = view;
+            haptic(15);
+            document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.tab-item').forEach(i => i.classList.remove('active'));
+            
+            const titleEl = document.getElementById('page-title');
+            if (view === 'farm') {
+                document.getElementById('view-farm').classList.add('active');
+                document.querySelectorAll('.tab-item')[0].classList.add('active');
+                titleEl.innerText = plots[currentIdx] ? (plots[currentIdx].name || (currentIdx+1) + '号土地') : '我的农场';
+            } else {
+                document.getElementById('view-calc').classList.add('active');
+                document.querySelectorAll('.tab-item')[1].classList.add('active');
+                titleEl.innerText = calcPlots[currentCalcIdx] ? (calcPlots[currentCalcIdx].name || '好友' + (currentCalcIdx+1)) : '串门监控';
+            }
+        }
+
+        // --- 标签页管理 ---
+        function renderTabs(type) {
+            const container = document.getElementById(`${type}-tabs`);
+            const sliderId = `${type}-slider`;
+            container.innerHTML = `<div class="selection-slider" id="${sliderId}"></div>`;
+            
+            const list = (type === 'farm' ? plots : calcPlots);
+            const cur = (type === 'farm' ? currentIdx : currentCalcIdx);
+
+            list.forEach((p, i) => {
+                const item = document.createElement('div');
+                item.className = `seg-item ${i === cur ? 'active' : ''}`;
+                item.innerText = p.name || (type === 'farm' ? `${i+1}号土地` : `好友${i+1}`);
+                item.onclick = () => {
+                    if (type === 'farm') currentIdx = i; else currentCalcIdx = i;
+                    haptic(10); // 微震
+                    renderTabs(type);
+                    renderContent(type);
+                    switchView(type); // 更新标题
+                };
+                container.appendChild(item);
+            });
+
+            if (list.length < 9) {
+                const add = document.createElement('div');
+                add.className = 'seg-item add-btn';
+                add.innerText = '＋';
+                add.onclick = () => addSlot(type);
+                container.appendChild(add);
+            }
+            updateSlider(type);
+        }
+
+        function updateSlider(type) {
+            const slider = document.getElementById(`${type}-slider`);
+            const items = document.querySelectorAll(`#${type}-tabs .seg-item:not(.add-btn)`);
+            const cur = (type === 'farm' ? currentIdx : currentCalcIdx);
+            if (items[cur]) {
+                slider.style.width = items[cur].offsetWidth + 'px';
+                slider.style.transform = `translateX(${items[cur].offsetLeft - 2}px)`;
+            }
+        }
+
+        function addSlot(type) {
+            const list = (type === 'farm' ? plots : calcPlots);
+            if (list.length >= 9) return;
+            const newName = type === 'farm' ? `${list.length+1}号土地` : `好友${list.length+1}`;
+            list.push({ name: newName, hours: 0, status: 'idle', points: [] });
+            if (type === 'farm') currentIdx = list.length - 1; else currentCalcIdx = list.length - 1;
+            save();
+            renderTabs(type);
+            renderContent(type);
+            switchView(type);
+            setTimeout(() => { document.querySelector(`#view-${type} .tabs-container`).scrollLeft = 9999; }, 100);
+        }
+
+        async function renameCurrent() {
+            const list = (currentView === 'farm' ? plots : calcPlots);
+            const idx  = (currentView === 'farm' ? currentIdx : currentCalcIdx);
+            if (!list[idx]) return;
+
+            const newName = await iosPrompt('重命名', '请输入新名称', list[idx].name);
+            if (newName !== null && newName.trim()) {
+                list[idx].name = newName.trim();
+                save();
+                renderTabs(currentView);
+                switchView(currentView);
+            }
+        }
+
+        // --- 内容渲染 ---
+        function renderContent(type) {
+            const container = document.getElementById(`${type}-content`);
+            const p = (type === 'farm' ? plots[currentIdx] : calcPlots[currentCalcIdx]);
+
+            if (p.status === 'idle') {
+                if (type === 'farm') {
+                    // 自有农场：选择即开始
+                    renderCropPicker(container, type);
+                } else {
+                    // 外部监控：需要输入游戏时间
+                    renderCalcForm(container);
+                }
+            } else {
+                renderMonitor(container, p, type);
+            }
+        }
+
+        // 作物主题色映射
+        const CROP_THEMES = { 1: 'theme-1h', 8: 'theme-8h', 16: 'theme-16h', 32: 'theme-32h' };
+        // 作物 icon 背景色（iOS 系统浅色配套）
+        const CROP_BG = { 1: '#E3F9E9', 8: '#E3EEFF', 16: '#FFF3E0', 32: '#F3E8FF' };
+        // 作物 icon 颜色
+        const CROP_ICON_COLOR = { 1: '#34C759', 8: '#007AFF', 16: '#FF9500', 32: '#AF52DE' };
+
+        function renderCropPicker(container, type) {
+            const tiers = [
+                { h: 1,  icon: '🌱', sub: '完美收获约 44 分钟' },
+                { h: 8,  icon: '🌿', sub: '完美收获约 5 小时 52 分' },
+                { h: 16, icon: '🌾', sub: '完美收获约 11 小时 44 分' },
+                { h: 32, icon: '🌳', sub: '完美收获约 23 小时 28 分' },
+            ];
+            const nowStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+            container.innerHTML = `
+                <div class="card-header">选择时间分类</div>
+                <div class="steps-card">
+                    ${tiers.map(t => `
+                        <div class="crop-item" onclick="toggleCropPanel('crop-panel-${t.h}')">
+                            <div class="crop-icon" style="background:${CROP_BG[t.h]};color:${CROP_ICON_COLOR[t.h]}">${t.icon}</div>
+                            <div class="crop-body">
+                                <div class="crop-title">${t.h} 小时分类</div>
+                                <div class="crop-subtitle">${t.sub}</div>
+                            </div>
+                            <div class="crop-arrow">›</div>
+                        </div>
+                        <div class="crop-time-panel" id="crop-panel-${t.h}">
+                            <label>🍎 选择具体作物</label>
+                            <div class="ios-input-group" style="margin-bottom:12px; border:1.5px solid var(--ios-blue);">
+                                <div class="input-item">
+                                    <select class="input-field" id="crop-select-${t.h}" style="text-align-last: left; width:100%; color:var(--ios-label);">
+                                        ${CROP_DATA[t.h].map(c => `<option value="${c.name}">${c.icon} ${c.name}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            <label>📅 种植时间（补录请修改）</label>
+                            <input type="datetime-local" id="crop-time-${t.h}" value="${nowStr}" max="${nowStr}">
+                            <button class="start-btn" onclick="startFarmWithTime(${t.h})">开始监控</button>
+                        </div>
+                    `).join('')}
+                </div>
+                ${(type === 'farm' ? plots : calcPlots).length > 1 ? `<button class="ios-button danger" onclick="removeSlot('${type}')">删除此农场</button>` : ''}
+            `;
+        }
+
+        function toggleCropPanel(panelId) {
+            // 关闭其它，切换当前
+            document.querySelectorAll('.crop-time-panel').forEach(p => {
+                if (p.id !== panelId) p.classList.remove('open');
+            });
+            const panel = document.getElementById(panelId);
+            if (panel) panel.classList.toggle('open');
+        }
+
+        function startFarmWithTime(h) {
+            const input = document.getElementById(`crop-time-${h}`);
+            const cropSelect = document.getElementById(`crop-select-${h}`);
+            const cropItem = CROP_DATA[h].find(c => c.name === cropSelect.value);
+            
+            const startTs = input ? new Date(input.value).getTime() : Date.now();
+            if (!startTs || isNaN(startTs)) { startFarm(h, null, cropItem); return; }
+            if (startTs > Date.now() + 60000) {
+                iosAlert('时间错误', '种植时间不能设置为未来时间。');
+                return;
+            }
+            startFarm(h, startTs, cropItem);
+        }
+
+        function renderCalcForm(container) {
+            const now = new Date();
+            now.setHours(now.getHours() + 24);
+            const defaultTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+            // 让计算器也支持选择具体作物
+            const allCrops = [];
+            Object.keys(CROP_DATA).forEach(h => {
+                CROP_DATA[h].forEach(c => allCrops.push({ ...c, h: parseInt(h) }));
+            });
+
+            container.innerHTML = `
+                <div class="card-header">作物计算器 · 逆向推导</div>
+                <div class="ios-input-group">
+                    <div class="input-item">
+                        <div class="input-label">选择作物</div>
+                        <div class="input-value-wrap">
+                            <select class="input-field" id="calc-crop-key" style="width:180px text-align-last: right;">
+                                ${allCrops.map((c, i) => `<option value="${i}">${c.icon} ${c.name} (${c.h}H)</option>`).join('')}
+                            </select>
+                            <div class="input-arrow">›</div>
+                        </div>
+                    </div>
+                    <div class="input-item">
+                        <div class="input-label">预计收割时间</div>
+                        <div class="input-value-wrap">
+                            <input type="datetime-local" class="input-field" id="calc-t" value="${defaultTime}">
+                            <div class="input-arrow">›</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="ios-button" onclick="startCalc()">开始监控此任务</button>
+                ${calcPlots.length > 1 ? `<button class="ios-button danger" onclick="removeSlot('calc')">删除此任务</button>` : ''}
+            `;
+        }
+
+        function renderMonitor(container, p, type) {
+            const icons = ['💧', '💧', '🧺'];
+            const bgColors = ['blue', 'orange', 'purple'];
+            const themeClass = CROP_THEMES[p.hours] || 'theme-8h';
+            const cropIcon = p.crop ? p.crop.icon : '🌾';
+            const cropName = p.crop ? p.crop.name : (p.hours + 'H 作物');
+
+            container.innerHTML = `
+                <div class="harvest-hero ${themeClass}">
+                    <div class="hero-label">完美收割 ${cropIcon} ${cropName}</div>
+                    <div class="hero-time" id="${type}-mt">--:--:--</div>
+                    <div class="hero-sub">
+                        <span class="hero-badge">${p.hours}H</span>
+                        <span>${type === 'farm' ? '自家生产' : '串门监控'}</span>
+                    </div>
+                </div>
+                <div class="card-header">灌溉进度</div>
+                <div class="steps-card">
+                    <div class="step-row">
+                        <div class="step-icon green">🌱</div>
+                        <div class="step-body">
+                            <div class="step-title done-text">种植时初始浇水</div>
+                            <div class="step-subtitle">Step 0 · 已完成</div>
+                        </div>
+                        <div class="step-time done">✓ 已浇</div>
+                    </div>
+                    ${p.points.map((pt, i) => `
+                        <div class="step-row">
+                            <div class="step-icon ${bgColors[i]}">${icons[i]}</div>
+                            <div class="step-body">
+                                <div class="step-title" id="${type}-title-${pt.id}">${pt.label}</div>
+                                <div class="step-subtitle" id="${type}-sub-${pt.id}">等待中</div>
+                            </div>
+                            <div class="step-time" id="${type}-val-${pt.id}">--:--</div>
+                        </div>
+                    `).join('')}
+                </div>
+                <button class="ios-button" onclick="restartSlot('${type}')">重新开始</button>
+                <button class="ios-button danger" onclick="stopSlot('${type}')">停止监控</button>
+            `;
+        }
+
+        // --- 核心逻辑 ---
+        // startTs 为可选参数，不传则使用当前时间（补录场景传入过去的时间戳）
+        function startFarm(h, startTs, cropItem) {
+            const total = h * 3600 * 1000;
+            const start = startTs || Date.now();
+            plots[currentIdx].hours = h;
+            plots[currentIdx].crop = cropItem || null;
+            plots[currentIdx].status = 'running';
+            plots[currentIdx].points = generatePoints(start, total);
+            save();
+            renderContent('farm');
+            playNotifySound();
+        }
+
+        function startCalc() {
+            const cropIdx = parseInt(document.getElementById('calc-crop-key').value);
+            const allCrops = [];
+            Object.keys(CROP_DATA).forEach(h => {
+                CROP_DATA[h].forEach(c => allCrops.push({ ...c, h: parseInt(h) }));
+            });
+            const cropItem = allCrops[cropIdx];
+            if (!cropItem) return;
+
+            const h = cropItem.h;
+            const gameTimeStr = document.getElementById('calc-t').value;
+            if (!gameTimeStr) return;
+            const gameTime = new Date(gameTimeStr).getTime();
+            const total = h * 3600 * 1000;
+            const start = gameTime - total;
+
+            calcPlots[currentCalcIdx].hours = h;
+            calcPlots[currentCalcIdx].crop = cropItem;
+            calcPlots[currentCalcIdx].status = 'running';
+            calcPlots[currentCalcIdx].points = generatePoints(start, total);
+            save();
+            renderContent('calc');
+            playNotifySound();
+        }
+
+        function generatePoints(start, total) {
+            const offset = () => 60000 + Math.random() * 60000;
+            return [
+                { id: '1', label: '第1次浇水 (1/3)', time: start + total/3, notifyTime: start + total/3 - offset(), done: false, warned: false },
+                { id: '2', label: '第2次浇水 (2/3)', time: start + total*2/3, notifyTime: start + total*2/3 - offset(), done: false, warned: false },
+                { id: '3', label: '最终收割 (11/15)', time: start + total*(11/15), notifyTime: start + total*(11/15) - offset(), done: false, warned: false }
+            ];
+        }
+
+        function startLoop() {
+            if (loop) clearInterval(loop);
+            loop = setInterval(tick, 1000);
+        }
+
+        function tick() {
+            const now = Date.now();
+            [ {list: plots, type: 'farm', cur: currentIdx}, {list: calcPlots, type: 'calc', cur: currentCalcIdx} ].forEach(group => {
+                group.list.forEach((p, idx) => {
+                    if (p.status !== 'running') return;
+                    
+                    // 主计时器
+                    if (idx === group.cur && currentView === group.type) {
+                        const hTime = p.points[2].time;
+                        const mt = document.getElementById(`${group.type}-mt`);
+                        if (mt) {
+                            const isReady = hTime <= now;
+                            mt.innerText = isReady ? '可收割' : fmtAbsTime(hTime);
+                            const hero = mt.closest('.harvest-hero');
+                            if (hero) hero.classList.toggle('ready', isReady);
+                        }
+                    }
+
+                    let allDone = true;
+                    p.points.forEach(pt => {
+                        const diff = pt.time - now;
+                        const wDiff = pt.notifyTime - now;
+
+                        if (!pt.warned && wDiff <= 0 && diff > 0) {
+                            pt.warned = true;
+                            alertUser(`⏰ 预警: ${p.name}`, `${pt.label} 即将临近`);
+                            haptic(70); // 预警震动
+                            save();
+                            if (idx === group.cur && currentView === group.type) renderContent(group.type);
+                        }
+
+                        if (diff <= 0 && !pt.done) {
+                            pt.done = true;
+                            alertUser(`🧺 到点: ${p.name}`, `${pt.label} 时间已到！`);
+                            haptic([100, 50, 100]); // 到点节奏震动
+                            save();
+                            if (idx === group.cur && currentView === group.type) renderContent(group.type);
+                        }
+
+                        if (!pt.done) allDone = false;
+                        
+                        if (idx === group.cur && currentView === group.type) {
+                            const val = document.getElementById(`${group.type}-val-${pt.id}`);
+                            const sub = document.getElementById(`${group.type}-sub-${pt.id}`);
+                            if (val) {
+                                val.className = diff <= 0 ? 'step-time done' : (pt.warned ? 'step-time alert' : 'step-time');
+                                val.innerText  = diff <= 0 ? '✓ 已达' : fmtAbsTime(pt.time);
+                            }
+                            if (sub) {
+                                sub.innerText = diff <= 0 ? '已完成' : (pt.warned ? '准备浇水！' : '等待中');
+                            }
+                        }
+                    });
+
+                    // 自动归档：收割完成1小时后自动重置为 idle
+                    const harvestTime = p.points[2].time;
+                    if (allDone && (now - harvestTime > 3600 * 1000)) {
+                        p.status = 'idle';
+                        save();
+                        if (idx === group.cur && currentView === group.type) renderContent(group.type);
+                    }
+                });
+            });
+        }
+
+        // 触感反馈
+        function haptic(pattern) {
+            if (navigator.vibrate) navigator.vibrate(pattern);
+        }
+
+        // --- 工具函数 ---
+        function fmtAbsTime(ts) {
+            const target = new Date(ts);
+            const now = new Date();
+            const timeStr = target.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
+            const diffDays = Math.round((targetDay - today) / (1000 * 3600 * 24));
+            if (diffDays === 0) return `今天 ${timeStr}`;
+            if (diffDays === 1) return `明天 ${timeStr}`;
+            return `${target.getMonth()+1}/${target.getDate()} ${timeStr}`;
+        }
+
+        function alertUser(title, body) {
+            playNotifySound();
+            if (Notification.permission === 'granted') new Notification(title, { body });
+            const banner = document.getElementById('ios-alert');
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-body').innerText = body;
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 8000);
+        }
+
+        function playNotifySound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                // 层叠两个正弦波，模拟柔和钟球音
+                [880, 1108].forEach((freq, i) => {
+                    const osc  = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.12);
+                    // 快速起音 + 长尾衰减，耕耕耱山容，不刺耳
+                    gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.12);
+                    gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.12 + 0.01);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + i * 0.12 + 1.0);
+                    osc.start(ctx.currentTime + i * 0.12);
+                    osc.stop(ctx.currentTime + i * 0.12 + 1.1);
+                    osc.onended = () => ctx.close();
+                });
+            } catch(e) { /* 浏览器不支持时静默异常 */ }
+        }
+
+        async function stopSlot(type) {
+            const ok = await iosConfirm('停止监控', '确定要停止该任务吗？');
+            if (!ok) return;
+            const list = (type === 'farm' ? plots : calcPlots);
+            const idx  = (type === 'farm' ? currentIdx : currentCalcIdx);
+            list[idx].status = 'idle';
+            save();
+            renderContent(type);
+        }
+
+        async function removeSlot(type) {
+            const ok = await iosConfirm('删除标签页', '此操作不可恢复，确定永久删除吗？', true);
+            if (!ok) return;
+            let list = (type === 'farm' ? plots : calcPlots);
+            let idx  = (type === 'farm' ? currentIdx : currentCalcIdx);
+            list.splice(idx, 1);
+            if (type === 'farm') currentIdx = 0; else currentCalcIdx = 0;
+            save();
+            renderTabs(type);
+            renderContent(type);
+            switchView(type);
+        }
+
+        // --- 弹窗工具函数 ---
+        function alertUser(title, body) {
+            playNotifySound();
+            if (Notification.permission === 'granted') new Notification(title, { body });
+            const banner = document.getElementById('ios-alert');
+            document.getElementById('alert-title').innerText = title;
+            document.getElementById('alert-body').innerText  = body;
+            // 如果已在显示，先重置动画
+            banner.classList.remove('show');
+            void banner.offsetWidth; // force reflow
+            banner.classList.add('show');
+            clearTimeout(banner._timer);
+            banner._timer = setTimeout(() => banner.classList.remove('show'), 6000);
+        }
+
+        // iOS 原生对话框核心库
+        let _modalResolve = null;
+
+        function _openModal(title, msg, hasInput, defaultVal, buttons) {
+            return new Promise(resolve => {
+                _modalResolve = resolve;
+                document.getElementById('modal-title').innerText = title;
+                document.getElementById('modal-msg').innerText   = msg || '';
+                const input = document.getElementById('modal-input');
+                if (hasInput) {
+                    input.style.display = 'block';
+                    input.value = defaultVal || '';
+                    setTimeout(() => input.focus(), 300);
+                } else {
+                    input.style.display = 'none';
+                }
+                // 渲染按钮
+                const actionsEl = document.getElementById('modal-actions');
+                actionsEl.innerHTML = '';
+                buttons.forEach(btn => {
+                    const el = document.createElement('button');
+                    el.className = 'ios-modal-btn' + (btn.primary ? ' primary' : '') + (btn.danger ? ' destructive' : '');
+                    el.innerText = btn.text;
+                    el.onclick = () => {
+                        _closeModal();
+                        resolve(btn.value);
+                    };
+                    actionsEl.appendChild(el);
+                });
+                const overlay = document.getElementById('ios-modal');
+                overlay.style.display = 'flex';
+                requestAnimationFrame(() => overlay.classList.add('visible'));
+            });
+        }
+
+        function _closeModal() {
+            const overlay = document.getElementById('ios-modal');
+            overlay.classList.remove('visible');
+            setTimeout(() => { overlay.style.display = 'none'; }, 280);
+        }
+
+        function _modalOverlayClick(e) {
+            if (e.target === document.getElementById('ios-modal')) _closeModal();
+        }
+
+        function iosAlert(title, msg) {
+            return _openModal(title, msg, false, '', [
+                { text: '好', primary: true, value: true }
+            ]);
+        }
+
+        function iosConfirm(title, msg, danger = false) {
+            return _openModal(title, msg, false, '', [
+                { text: '取消', primary: false, value: false },
+                { text: '确认', primary: !danger, danger, value: true }
+            ]);
+        }
+
+        function iosPrompt(title, msg, defaultVal) {
+            const input = document.getElementById('modal-input');
+            return _openModal(title, msg, true, defaultVal, [
+                { text: '取消', value: null },
+                { text: '确认', primary: true, value: '__INPUT__' }
+            ]).then(v => v === '__INPUT__' ? input.value : null);
+        }
+
+        async function restartSlot(type) {
+            const list = (type === 'farm' ? plots : calcPlots);
+            const idx  = (type === 'farm' ? currentIdx : currentCalcIdx);
+            const p = list[idx];
+            if (!p || p.hours <= 0) return;
+
+            const label = p.crop ? `${p.crop.icon} ${p.crop.name}` : `${p.hours}H 作物`;
+            const ok = await iosConfirm('重新开始', `确定要按当前配置（${label}）重新开始计时吗？`);
+            if (ok) {
+                if (type === 'farm') {
+                    startFarm(p.hours, null, p.crop);
+                } else {
+                    const total = p.hours * 3600 * 1000;
+                    p.status = 'running';
+                    p.points = generatePoints(Date.now(), total);
+                    save();
+                    renderContent('calc');
+                }
+                playNotifySound();
+            }
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
