@@ -1092,6 +1092,10 @@
                         <span>${type === 'farm' ? '自主种植' : '外部监控'}</span>
                     </div>
                 </div>
+                <div style="padding: 12px 16px 0; font-size: 13px; color: var(--ios-secondary-label); display: flex; align-items: center; gap: 6px;">
+                    <span>🌱 种植时间</span>
+                    <span style="font-family: monospace; font-weight: 600; color: var(--ios-label);">${p.startTime ? new Date(p.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}) : '--:--:--'}</span>
+                </div>
                 <div class="card-header">灌溉进度</div>
                 <div class="steps-card">
                     <div class="step-row">
@@ -1126,6 +1130,7 @@
             plots[currentIdx].hours = h;
             plots[currentIdx].crop = cropItem || null;
             plots[currentIdx].status = 'running';
+            plots[currentIdx].startTime = start; // 关键：记录起始时间
             plots[currentIdx].points = generatePoints(start, total);
             save();
             renderContent('farm');
@@ -1151,6 +1156,7 @@
             calcPlots[currentCalcIdx].hours = h;
             calcPlots[currentCalcIdx].crop = cropItem;
             calcPlots[currentCalcIdx].status = 'running';
+            calcPlots[currentCalcIdx].startTime = start; // 关键：记录起始时间
             calcPlots[currentCalcIdx].points = generatePoints(start, total);
             save();
             renderContent('calc');
