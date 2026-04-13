@@ -826,7 +826,7 @@
 
         function initAppCore() {
             load();
-            if (plots.length === 0) plots.push({ name: '农场 1', hours: 0, crop: null, status: 'idle', points: [] });
+            if (plots.length === 0) plots.push({ name: '1号土地', hours: 0, crop: null, status: 'idle', points: [] });
             if (calcPlots.length === 0) calcPlots.push({ name: '任务 1', hours: 0, crop: null, status: 'idle', points: [] });
             
             // 确保时钟启动
@@ -875,7 +875,7 @@
             if (view === 'farm') {
                 document.getElementById('view-farm').classList.add('active');
                 document.querySelectorAll('.tab-item')[0].classList.add('active');
-                titleEl.innerText = plots[currentIdx] ? (plots[currentIdx].name || '农场 ' + (currentIdx+1)) : '我的农场';
+                titleEl.innerText = plots[currentIdx] ? (plots[currentIdx].name || (currentIdx+1) + '号土地') : '我的农场';
             } else {
                 document.getElementById('view-calc').classList.add('active');
                 document.querySelectorAll('.tab-item')[1].classList.add('active');
@@ -895,7 +895,7 @@
             list.forEach((p, i) => {
                 const item = document.createElement('div');
                 item.className = `seg-item ${i === cur ? 'active' : ''}`;
-                item.innerText = p.name || (type === 'farm' ? `农场 ${i+1}` : `任务 ${i+1}`);
+                item.innerText = p.name || (type === 'farm' ? `${i+1}号土地` : `任务 ${i+1}`);
                 item.onclick = () => {
                     if (type === 'farm') currentIdx = i; else currentCalcIdx = i;
                     haptic(10); // 微震
