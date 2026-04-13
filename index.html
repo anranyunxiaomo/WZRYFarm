@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>小王农场助手 V7</title>
+    <title>农场助手</title>
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -620,7 +620,7 @@
             <input type="text" class="activation-input" id="activation-code" placeholder="输入激活码" autocorrect="off" autocapitalize="on">
             <button class="activate-btn" onclick="doActivate()">立即激活应用</button>
         </div>
-        <p style="margin-top: 30px; font-size: 12px; color: #8E8E93;">王者荣耀农场助手 V7 · 安全分发系统</p>
+        <p style="margin-top: 30px; font-size: 12px; color: #8E8E93;">农场助手 · 安全分发系统</p>
     </div>
 
     <!-- 顶部通知 Banner -->
@@ -647,7 +647,7 @@
     <!-- 顶栏 -->
     <div class="nav-bar">
         <h1 id="page-nav-wrap">
-            <span id="page-title">小王农场助手</span>
+            <span id="page-title">农场助手</span>
             <span id="edit-name-btn" onclick="renameCurrent()">重命名</span>
         </h1>
         <div id="current-time">00:00:00</div>
@@ -663,7 +663,7 @@
         <div id="farm-content"></div>
     </div>
 
-    <!-- 分屏内容：串门监控 (原外部监控) -->
+    <!-- 分屏内容：外部监控 (原计算器) -->
     <div id="view-calc" class="view-section">
         <div class="tabs-container">
             <div class="segmented-control" id="calc-tabs">
@@ -681,7 +681,7 @@
         </div>
         <div class="tab-item" onclick="switchView('calc')">
             <div class="tab-icon">🖥️</div>
-            <span>串门监控</span>
+            <span>外部监控</span>
         </div>
     </div>
 
@@ -737,9 +737,13 @@
             const code = document.getElementById('activation-code').value;
             if (verifyCode(did, code)) {
                 localStorage.setItem(AUTH_KEY, code.toUpperCase().trim());
-                iosAlert('激活成功', '欢迎使用小王农场助手！').then(() => {
-                    location.reload();
-                });
+                const lock = document.getElementById('lock-screen');
+                lock.style.opacity = '0';
+                lock.style.transition = 'opacity 0.4s ease';
+                setTimeout(() => {
+                    lock.style.display = 'none';
+                    initAppCore(); // 激活后立即完整启动应用核心，无需重启
+                }, 400);
             } else {
                 iosAlert('激活失败', '无效的激活码，请检查后重试。');
             }
@@ -792,17 +796,24 @@
         let loop = null;
 
         function init() {
-            if (!checkAuth()) return; // 鉴权未通过则不初始化
+            if (!checkAuth()) return; 
+            initAppCore();
+        }
+
+        function initAppCore() {
             load();
-            if (plots.length === 0) plots.push({ name: '1号土地', hours: 0, crop: null, status: 'idle', points: [] });
-            if (calcPlots.length === 0) calcPlots.push({ name: '好友1', hours: 0, crop: null, status: 'idle', points: [] });
+            if (plots.length === 0) plots.push({ name: '农场 1', hours: 0, crop: null, status: 'idle', points: [] });
+            if (calcPlots.length === 0) calcPlots.push({ name: '任务 1', hours: 0, crop: null, status: 'idle', points: [] });
             
-            setInterval(() => { 
-                document.getElementById('current-time').innerText = new Date().toLocaleTimeString(); 
-            }, 1000);
+            // 确保时钟启动
+            if (!window.clockTimer) {
+                window.clockTimer = setInterval(() => { 
+                    document.getElementById('current-time').innerText = new Date().toLocaleTimeString(); 
+                }, 1000);
+            }
 
             renderAll();
-            switchView('farm'); // 强制同步初始标题
+            switchView('farm'); 
             startLoop();
 
             if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
@@ -840,11 +851,11 @@
             if (view === 'farm') {
                 document.getElementById('view-farm').classList.add('active');
                 document.querySelectorAll('.tab-item')[0].classList.add('active');
-                titleEl.innerText = plots[currentIdx] ? (plots[currentIdx].name || (currentIdx+1) + '号土地') : '我的农场';
+                titleEl.innerText = plots[currentIdx] ? (plots[currentIdx].name || '农场 ' + (currentIdx+1)) : '我的农场';
             } else {
                 document.getElementById('view-calc').classList.add('active');
                 document.querySelectorAll('.tab-item')[1].classList.add('active');
-                titleEl.innerText = calcPlots[currentCalcIdx] ? (calcPlots[currentCalcIdx].name || '好友' + (currentCalcIdx+1)) : '串门监控';
+                titleEl.innerText = calcPlots[currentCalcIdx] ? (calcPlots[currentCalcIdx].name || '任务 ' + (currentCalcIdx+1)) : '外部监控';
             }
         }
 
@@ -860,7 +871,7 @@
             list.forEach((p, i) => {
                 const item = document.createElement('div');
                 item.className = `seg-item ${i === cur ? 'active' : ''}`;
-                item.innerText = p.name || (type === 'farm' ? `${i+1}号土地` : `好友${i+1}`);
+                item.innerText = p.name || (type === 'farm' ? `农场 ${i+1}` : `任务 ${i+1}`);
                 item.onclick = () => {
                     if (type === 'farm') currentIdx = i; else currentCalcIdx = i;
                     haptic(10); // 微震
@@ -1050,11 +1061,11 @@
 
             container.innerHTML = `
                 <div class="harvest-hero ${themeClass}">
-                    <div class="hero-label">完美收割 ${cropIcon} ${cropName}</div>
+                    <div class="hero-label">预计收割 ${cropIcon} ${cropName}</div>
                     <div class="hero-time" id="${type}-mt">--:--:--</div>
                     <div class="hero-sub">
                         <span class="hero-badge">${p.hours}H</span>
-                        <span>${type === 'farm' ? '自家生产' : '串门监控'}</span>
+                        <span>${type === 'farm' ? '自主种植' : '外部监控'}</span>
                     </div>
                 </div>
                 <div class="card-header">灌溉进度</div>
